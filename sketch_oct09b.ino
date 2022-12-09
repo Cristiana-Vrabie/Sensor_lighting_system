@@ -1,7 +1,8 @@
+#include <Arduino_FreeRTOS.h>
+
 /*----------------------------------------------------------------------------*/
 /*                                 Includes                                   */
 /*----------------------------------------------------------------------------*/
-#include <Arduino_FreeRTOS.h>
 
 /*----------------------------------------------------------------------------*/
 /*                               Local defines                                */
@@ -27,7 +28,7 @@
 long distance_cm;
 long light_intensity_percentage;
 bool system_controlled_led_status = false;
-bool cloud_controlled_les_status = false;
+bool cloud_controlled_led_status = false;
 
 /*----------------------------------------------------------------------------*/
 /*                       Declaration of local functions                       */
@@ -68,6 +69,9 @@ void setup() {
 
   // Initialize serial and wait for port to open:
   Serial.begin(9600);
+  // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
+  //vTaskDelay(1); 
+  while(!Serial);
 
   //Pin settings 
   pinMode(TRIGGER_PIN, OUTPUT);
@@ -77,8 +81,7 @@ void setup() {
   pinMode(GREEN_PIN, OUTPUT);
   pinMode(RED_PIN, OUTPUT);    
 
-  // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
-  vTaskDelay(1500); 
+
 
   //Task creation
  /* xTaskCreate(
@@ -92,7 +95,7 @@ void setup() {
   xTaskCreate(
     SDTR_MeasureDistance,        // Task function
     "SDTR_MeasureDistance",      // Name 
-    10000,                       // Stack size of the task
+    128,                       // Stack size of the task
     NULL,                        // Parameters
     1,                           // Priority
     NULL);                       // Task handle
@@ -100,7 +103,7 @@ void setup() {
   xTaskCreate(
     SDTR_FindLightIntensity,        // Task function
     "SDTR_FindLightIntensity",      // Name 
-    10000,                       // Stack size of the task
+    128,                       // Stack size of the task
     NULL,                        // Parameters
     1,                           // Priority
     NULL);                       // Task handle
@@ -108,7 +111,7 @@ void setup() {
   xTaskCreate(
     SDTR_BlinkLed,        // Task function
     "SDTR_BlinkLed",      // Name 
-    10000,                       // Stack size of the task
+    128,                       // Stack size of the task
     NULL,                        // Parameters
     1,                           // Priority
     NULL);                       // Task handle
@@ -128,12 +131,12 @@ void loop() {
 
 void SDTR_MeasureDistance(void *pvParameters) {
   (void) pvParameters;
-
   // A task shall never return or exit
-  for(;;)
-
-  Serial.println("READING DISTANCE SENSOR VALUE");
+  for(;;) {
+  //Serial.println("READING DISTANCE SENSOR VALUE");
+  Serial.println("TASK 1");
   SDTR_GetDistance();
+  }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -143,7 +146,8 @@ void SDTR_GetDistance() {
   long pulseWidthInMicro = 0;
   
   digitalWrite(TRIGGER_PIN, HIGH);
-  delayMicroseconds(10);  
+  //10 us wait = 0.01ms/portTICK_PERIOD_MS
+  vTaskDelay(0.01/portTICK_PERIOD_MS);  
   digitalWrite(TRIGGER_PIN, LOW);
   pulseWidthInMicro = pulseIn(ECHO_PIN, HIGH);
   distance_cm = (pulseWidthInMicro*340/10000)/2; //cm
@@ -160,10 +164,11 @@ void SDTR_FindLightIntensity(void *pvParameters) {
   (void) pvParameters;
 
     // A task shall never return or exit
-  for(;;)
-
-  Serial.println("READING LIGHT INTENSITY SENSOR VALUE");
-  SDTR_GetIntensity();
+  for(;;) {
+    //Serial.println("READING LIGHT INTENSITY SENSOR VALUE");
+    Serial.println("TASK 2");
+    SDTR_GetIntensity();
+  }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -190,9 +195,11 @@ void SDTR_BlinkLed(void *pvParameters) {
   (void) pvParameters;
 
   // A task shall never return or exit
-  for(;;)
-
-  SDTR_Blink();
+  for(;;) {
+    SDTR_Blink();
+    Serial.println("TASK 3");
+    //vTaskDelay(10);
+  }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -213,5 +220,4 @@ void SDTR_Blink() {
     digitalWrite(BLUE_PIN, LOW);
     digitalWrite(GREEN_PIN, LOW);    
   }
-  vTaskDelay(20);
 }
